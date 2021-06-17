@@ -4,12 +4,10 @@
 #include "Message.hpp"
 #include "Network.hpp"
 #include "Readings.hpp"
-#include "keys.h"
-#include "utils.hpp"
+
+uint8_t DEVICE_ID = 1;
 
 #define LED_EXTERNAL 5
-uint8_t DEVICE_ID[16];
-
 #define HC12_TX 2
 #define HC12_RX 3
 SoftwareSerial HC12 = SoftwareSerial(HC12_RX, HC12_TX);
@@ -17,14 +15,15 @@ SoftwareSerial HC12 = SoftwareSerial(HC12_RX, HC12_TX);
 struct Network : public NetworkBase {
   using NetworkBase::NetworkBase;
   void handleMessage() {
-    switch (parser.message.message_id) {
+    Serial.println("Got message");
+    switch (inbound.message_id) {
       case MESSAGE_ID_REQUEST_VALUE: {
         digitalWrite(LED_EXTERNAL, LOW);
         uint8_t port = *inbound.payload;
         Reading reading = get_reading_from_port(port);
         if (reading.value == -127) {
           Serial.print("Error reading value on port ");
-          Serial.print(port);
+          Serial.println(port);
         } else {
           Serial.print("On port ");
           Serial.print(port);
@@ -35,13 +34,11 @@ struct Network : public NetworkBase {
       }
     }
   }
-  void handleBadMessage() {}
-  void handleTimeout() {}
-  void handleAnyMessage() {}
-  void handleSent(uint8_t* data, uint8_t len) {
+  void handleBroadcast() {Serial.println("Got broadcast");}
+  void handleBadMessage() {Serial.println("Got BAD message");}
+  void handleSent() {
     digitalWrite(LED_EXTERNAL, HIGH);
   }
-  void handleBroadcast() {}
 };
 
 Network network(HC12, DEVICE_ID);
@@ -55,10 +52,8 @@ void setup() {
   Serial.begin(9600);
   readings_setup();
 
-  uuid_parse(DEVICE_UUID, DEVICE_ID);
-
-  Serial.print("Device UUID: ");
-  Serial.println(DEVICE_UUID);
+  Serial.print("Device ID: ");
+  Serial.println(DEVICE_ID);
   digitalWrite(LED_BUILTIN, HIGH);
   digitalWrite(LED_EXTERNAL, HIGH);
 }
